@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Poster Studio</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:#f3f4f6;color:#111827}
+header{height:64px;background:#111827;color:white;display:flex;align-items:center;justify-content:space-between;padding:0 18px}
+.logo{font-weight:800;font-size:20px}.actions{display:flex;gap:8px}
+button,select,input{font:inherit}button{border:0;border-radius:9px;padding:10px 14px;cursor:pointer;font-weight:700}
+.primary{background:#fff;color:#111827}.dark{background:#111827;color:#fff}.danger{background:#fee2e2;color:#991b1b}
+.app{display:grid;grid-template-columns:300px 1fr 300px;height:calc(100vh - 64px)}
+.panel{background:#fff;padding:18px;overflow:auto;border-right:1px solid #e5e7eb}.right{border-left:1px solid #e5e7eb;border-right:0}
+h3{margin:4px 0 14px;font-size:15px}.group{margin-bottom:22px}.row{display:flex;gap:8px;margin-bottom:9px}.row>*{flex:1}
+label{font-size:12px;font-weight:700;display:block;margin:8px 0 5px;color:#374151}
+input[type=text],input[type=number],select{width:100%;padding:9px;border:1px solid #d1d5db;border-radius:8px}
+input[type=color]{width:100%;height:42px;border:1px solid #d1d5db;border-radius:8px;padding:3px}
+input[type=file]{width:100%;font-size:12px}
+.template{width:100%;text-align:left;background:#f9fafb;border:1px solid #e5e7eb;margin-bottom:8px}
+.canvas-area{display:flex;align-items:center;justify-content:center;overflow:auto;padding:30px;background:#e5e7eb}
+#poster{width:595px;height:842px;background:#fff;box-shadow:0 12px 40px #0002;position:relative;overflow:hidden}
+.bg{position:absolute;inset:0;background:linear-gradient(135deg,#111827,#374151)}
+.element{position:absolute;cursor:move;user-select:none;white-space:pre-wrap}
+.selected{outline:2px dashed #2563eb;outline-offset:5px}
+.title{font-size:54px;font-weight:900;line-height:.95}.body{font-size:22px;line-height:1.25}.price{font-size:46px;font-weight:900}
+.badge{background:#fff;color:#111827;border-radius:999px;padding:9px 16px;font-weight:800;display:inline-block}
+.photo{position:absolute;object-fit:cover;border-radius:18px}.logoimg{object-fit:contain}
+.small{font-size:12px;color:#6b7280}
+.layerbtn{width:100%;text-align:left;background:#f9fafb;border:1px solid #e5e7eb;padding:8px;border-radius:7px;font-size:12px}
+.layerbtn.active{border:2px solid #2563eb}.toolbtn{width:100%;background:#f9fafb;border:1px solid #e5e7eb;margin-bottom:8px}
+textarea{font:inherit}
+.poster-square{width:842px!important;height:842px!important}
+.poster-story{width:595px!important;height:1058px!important}
+.poster-landscape{width:842px!important;height:595px!important}
+@media print{header,.panel{display:none!important}.app{display:block;height:auto}.canvas-area{padding:0;background:white}#poster{box-shadow:none;margin:0}}
+@media(max-width:1000px){.app{grid-template-columns:240px 1fr}.right{display:none}}@media(max-width:650px){.app{grid-template-columns:1fr}.panel{display:none}.canvas-area{padding:12px}#poster{transform:scale(.58);transform-origin:center center;margin:-170px 0}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🎨 Poster Studio</div>
+  <div class="actions">
+    <button class="primary" onclick="newPoster()">New</button>
+    <button class="primary" onclick="saveProject()">💾 Save</button>
+    <button class="primary" onclick="loadProject()">📂 Load</button>
+    <button class="primary" onclick="undo()">↶ Undo</button>
+    <button class="primary" onclick="redo()">↷ Redo</button>
+    <button class="primary" onclick="downloadPNG()">Download PNG</button>
+    <button class="primary" onclick="window.print()">Print / PDF</button>
+  </div>
+</header>
+<div class="app">
+<aside class="panel">
+  <h3>Template Library</h3>
+  <select id="templateCategory" onchange="filterTemplates()" style="margin-bottom:10px">
+    <option value="all">All templates</option>
+    <option value="business">Business</option>
+    <option value="sale">Sales</option>
+    <option value="beauty">Beauty</option>
+    <option value="food">Food</option>
+    <option value="event">Events</option>
+    <option value="service">Services</option>
+  </select>
+  <button class="template" data-cat="business" onclick="template('business')">Business Advert</button>
+  <button class="template" data-cat="sale" onclick="template('sale')">Sale / Promotion</button>
+  <button class="template" data-cat="beauty" onclick="template('beauty')">Beauty & Nails</button>
+  <button class="template" data-cat="food" onclick="template('food')">Restaurant / Food</button>
+  <button class="template" data-cat="event" onclick="template('event')">Event</button>
+  <button class="template" data-cat="service" onclick="template('service')">Services</button>
+  <div class="group">
+    <h3>✨ AI Poster Maker</h3>
+    <label>Describe your poster</label>
+    <textarea id="aiBrief" rows="5" style="width:100%;padding:9px;border:1px solid #d1d5db;border-radius:8px;resize:vertical" placeholder="Example: Professional plumbing special. Geyser installation R1,500. Call 083 123 4567. Blue and white."></textarea>
+    <label>Style</label>
+    <select id="aiStyle"><option>Professional</option><option>Modern</option><option>Luxury</option><option>Bold</option><option>Minimal</option><option>Colourful</option></select>
+    <button class="dark" style="width:100%;margin-top:10px" onclick="generatePoster()">✨ Generate Poster</button>
+  </div>
+  <div class="group">
+    <h3>🎨 Brand Kit</h3>
+    <label>Brand name</label><input id="brandName" type="text" placeholder="Your Business">
+    <label>Primary colour</label><input id="brandPrimary" type="color" value="#111827">
+    <label>Secondary colour</label><input id="brandSecondary" type="color" value="#2563eb">
+    <label>Accent colour</label><input id="brandAccent" type="color" value="#f59e0b">
+    <label>Phone / WhatsApp</label><input id="brandPhone" type="text" placeholder="083 123 4567">
+    <label>Email</label><input id="brandEmail" type="text" placeholder="hello@example.com">
+    <button class="dark" style="width:100%;margin-top:10px" onclick="saveBrandKit()">Save Brand Kit</button>
+    <button class="toolbtn" onclick="applyBrandKit()">Apply Brand Colours</button>
+  </div>
+  <div class="group">
+    <h3>Add</h3>
+    <button class="toolbtn" onclick="addText('Heading')">＋ Heading</button>
+    <button class="toolbtn" onclick="addText('Your text here')">＋ Text</button>
+    <button class="toolbtn" onclick="addText('R 0.00','price',45,250)">＋ Price</button>
+    <button class="toolbtn" onclick="addShape('rect')">＋ Rectangle</button>
+    <button class="toolbtn" onclick="addShape('circle')">＋ Circle</button>
+    <label>Upload image / logo</label>
+    <input type="file" accept="image/*" onchange="uploadImage(event)">
+  </div>
+</aside>
+
+<main class="canvas-area"><div id="poster"><div class="bg" id="bg"></div></div></main>
+
+<aside class="panel right">
+  <h3>Design tools</h3>
+  <button class="toolbtn" onclick="duplicateSelected()">Duplicate selected</button>
+  <button class="toolbtn" onclick="bringForward()">Bring forward</button>
+  <button class="toolbtn" onclick="sendBackward()">Send backward</button>
+  <h3>Selected element</h3>
+  <div id="noSel" class="small">Click an element on the poster to edit it.</div>
+  <div id="controls" style="display:none">
+    <label>Text</label><input id="txt" type="text" oninput="updateText()">
+    <div class="row">
+      <div><label>X position</label><input id="px" type="number" oninput="updateTransform()"></div>
+      <div><label>Y position</label><input id="py" type="number" oninput="updateTransform()"></div>
+    </div>
+    <div class="row">
+      <div><label>Width</label><input id="pw" type="number" oninput="updateTransform()"></div>
+      <div><label>Height</label><input id="ph" type="number" oninput="updateTransform()"></div>
+    </div>
+    <label>Rotation</label><input id="rot" type="number" min="-180" max="180" oninput="updateTransform()">
+    <label>Opacity</label><input id="opa" type="range" min="0" max="1" step=".01" value="1" oninput="updateTransform()">
+    <label>Text</label>
+    <div class="row">
+      <div><label>Font size</label><input id="fs" type="number" min="8" max="120" oninput="updateStyle()"></div>
+      <div><label>Weight</label><select id="fw" onchange="updateStyle()"><option value="400">Normal</option><option value="700">Bold</option><option value="900">Heavy</option></select></div>
+    </div>
+    <div class="row">
+      <div><label>Text colour</label><input id="tc" type="color" onchange="updateStyle()"></div>
+      <div><label>Background</label><input id="ec" type="color" onchange="updateStyle()"></div>
+    </div>
+    <label>Alignment</label><select id="ta" onchange="updateStyle()"><option>left</option><option>center</option><option>right</option></select>
+    <button class="danger" style="width:100%;margin-top:14px" onclick="deleteSelected()">Delete element</button>
+  </div>
+  <hr>
+  <h3>Layers</h3>
+  <div id="layers" style="display:flex;flex-direction:column;gap:6px"></div>
+  <hr>
+  <h3>Pages</h3>
+  <div class="row">
+    <button class="toolbtn" onclick="addPage()">＋ Page</button>
+    <button class="toolbtn" onclick="duplicatePage()">Duplicate</button>
+  </div>
+  <div id="pageList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px"></div>
+  <hr>
+  <h3>Poster size</h3>
+  <select id="posterSize" onchange="changeSize()">
+    <option value="a4">A4 Portrait</option>
+    <option value="square">Social Square</option>
+    <option value="story">Social Story</option>
+    <option value="landscape">Landscape</option>
+  </select>
+  <hr>
+  <h3>Poster background</h3>
+  <label>Background colour</label><input type="color" id="bc" value="#111827" onchange="setBG()">
+  <label>Business / poster name</label><input type="text" id="brand" value="YOUR BUSINESS" oninput="setBrand()">
+  <p class="small">Drag elements around the poster. Use templates as a starting point, then edit everything.</p>
+</aside>
+</div>
+
+<script>
+let selected=null, drag=null, offsetX=0, offsetY=0;
+const poster=document.getElementById('poster');
+let history=[], historyIndex=-1, recording=true;
+let pages=[null], currentPage=0;
+let brandKit=JSON.parse(localStorage.getItem('posterStudioBrandKit')||'null');
+function snapshot(){ if(!recording)return; const state=poster.innerHTML; history=history.slice(0,historyIndex+1); history.push(state); historyIndex++; if(history.length>30){history.shift();historyIndex--;} }
+function restore(state){recording=false;poster.innerHTML=state;poster.querySelectorAll('.element').forEach(makeSelectable);selected=null;document.getElementById('controls').style.display='none';document.getElementById('noSel').style.display='block';updateLayers();recording=true;}
+function undo(){if(historyIndex>0){historyIndex--;restore(history[historyIndex]);}}
+function redo(){if(historyIndex<history.length-1){historyIndex++;restore(history[historyIndex]);}}
+function addText(text, cls='body', x=45,y=80){
+ const e=document.createElement('div'); e.className='element '+cls; e.textContent=text;
+ e.style.left=x+'px'; e.style.top=y+'px'; e.style.color='#fff'; e.dataset.type='text';
+ poster.appendChild(e); makeSelectable(e); select(e); snapshot(); return e;
+}
+function makeSelectable(e){
+ e.addEventListener('mousedown',startDrag); e.addEventListener('touchstart',startDrag,{passive:false});
+}
+function startDrag(ev){
+ ev.preventDefault(); select(ev.currentTarget);
+ const p=ev.touches?ev.touches[0]:ev; const r=poster.getBoundingClientRect();
+ offsetX=p.clientX-r.left-parseFloat(ev.currentTarget.style.left||0);
+ offsetY=p.clientY-r.top-parseFloat(ev.currentTarget.style.top||0);
+ drag=ev.currentTarget;
+}
+document.addEventListener('mousemove',move); document.addEventListener('mouseup',()=>drag=null);
+document.addEventListener('touchmove',move,{passive:false}); document.addEventListener('touchend',()=>drag=null);
+function move(ev){if(!drag)return;ev.preventDefault();const p=ev.touches?ev.touches[0]:ev;const r=poster.getBoundingClientRect();drag.style.left=Math.max(0,p.clientX-r.left-offsetX)+'px';drag.style.top=Math.max(0,p.clientY-r.top-offsetY)+'px';if(selected===drag){px.value=Math.round(parseFloat(drag.style.left));py.value=Math.round(parseFloat(drag.style.top));} }
+function select(e){
+ if(selected)selected.classList.remove('selected');
+ selected=e;e.classList.add('selected');
+ document.getElementById('noSel').style.display='none';document.getElementById('controls').style.display='block';
+ if(e.dataset.type==='text'||e.dataset.type==='shape'){
+   txt.value=e.textContent||'';
+   fs.value=parseInt(getComputedStyle(e).fontSize)||22;
+   fw.value=getComputedStyle(e).fontWeight;
+   tc.value=rgbToHex(getComputedStyle(e).color);
+   ec.value=rgbToHex(getComputedStyle(e).backgroundColor);
+   ta.value=getComputedStyle(e).textAlign;
+ }
+ px.value=Math.round(parseFloat(e.style.left)||0);py.value=Math.round(parseFloat(e.style.top)||0);
+ pw.value=Math.round(parseFloat(e.style.width)||e.offsetWidth);ph.value=Math.round(parseFloat(e.style.height)||e.offsetHeight);
+ rot.value=parseFloat(e.dataset.rotation||0);opa.value=parseFloat(e.style.opacity||1);
+ updateLayers();
+}
+function rgbToHex(rgb){let m=rgb.match(/\d+/g);if(!m)return'#ffffff';return'#'+m.slice(0,3).map(x=>(+x).toString(16).padStart(2,'0')).join('')}
+function updateTransform(){
+ if(!selected)return;
+ selected.style.left=(parseFloat(px.value)||0)+'px';
+ selected.style.top=(parseFloat(py.value)||0)+'px';
+ selected.style.width=Math.max(10,parseFloat(pw.value)||selected.offsetWidth)+'px';
+ selected.style.height=Math.max(10,parseFloat(ph.value)||selected.offsetHeight)+'px';
+ selected.dataset.rotation=rot.value||0;
+ selected.style.transform='rotate('+(rot.value||0)+'deg)';
+ selected.style.opacity=opa.value;
+ snapshot();updateLayers();
+}
+function updateLayers(){
+ const box=document.getElementById('layers'); if(!box)return;
+ box.innerHTML='';
+ [...poster.querySelectorAll('.element')].reverse().forEach((e,i)=>{
+   const b=document.createElement('button');b.className='layerbtn'+(e===selected?' active':'');
+   b.textContent=(e.dataset.type==='image'?'🖼️ ':e.dataset.type==='shape'?'⬛ ':'✏️ ')+(e.textContent||e.dataset.type||'Element').slice(0,28);
+   b.onclick=()=>select(e);box.appendChild(b);
+ });
+}
+function updateText(){if(selected)selected.textContent=txt.value}
+function updateStyle(){if(!selected)return;selected.style.fontSize=fs.value+'px';selected.style.fontWeight=fw.value;selected.style.color=tc.value;selected.style.backgroundColor=ec.value==='transparent'?'transparent':ec.value;selected.style.textAlign=ta.value}
+function deleteSelected(){if(selected){selected.remove();selected=null;document.getElementById('controls').style.display='none';document.getElementById('noSel').style.display='block';snapshot();updateLayers()}}
+function setBG(){document.getElementById('bg').style.background=document.getElementById('bc').value}
+function setBrand(){let b=document.getElementById('brand').value;let e=[...poster.querySelectorAll('.brand')][0];if(e)e.textContent=b}
+function addShape(kind){
+ const e=document.createElement('div'); e.className='element shape'; e.dataset.type='shape';
+ e.style.left='80px';e.style.top='350px';e.style.width='220px';e.style.height='100px';
+ e.style.background='#ffffff';e.style.opacity='.9';e.style.borderRadius=kind==='circle'?'50%':'12px';
+ poster.appendChild(e);makeSelectable(e);select(e);snapshot();
+}
+function duplicateSelected(){if(!selected)return;const e=selected.cloneNode(true);e.classList.remove('selected');e.style.left=(parseFloat(selected.style.left||0)+20)+'px';e.style.top=(parseFloat(selected.style.top||0)+20)+'px';poster.appendChild(e);makeSelectable(e);select(e);snapshot();updateLayers()}
+function bringForward(){if(selected){selected.style.zIndex=(parseInt(selected.style.zIndex||0)+1);snapshot()}}
+function sendBackward(){if(selected){selected.style.zIndex=Math.max(0,parseInt(selected.style.zIndex||0)-1);snapshot()}}
+function uploadImage(ev){let f=ev.target.files[0];if(!f)return;let url=URL.createObjectURL(f);let img=document.createElement('img');img.src=url;img.className='element photo';img.style.left='90px';img.style.top='300px';img.style.width='410px';img.style.height='270px';img.dataset.type='image';poster.appendChild(img);makeSelectable(img);select(img);snapshot();updateLayers()}
+function clearPoster(){poster.querySelectorAll('.element').forEach(e=>e.remove())}
+function template(t){clearPoster();let bg='#111827';if(t==='sale'){bg='linear-gradient(135deg,#7f1d1d,#ef4444)';addText('MEGA SALE','title',42,75);addText('LIMITED TIME ONLY','body',48,145);addText('50% OFF','price',45,215)}else if(t==='beauty'){bg='linear-gradient(135deg,#831843,#f472b6)';addText('BEAUTY & NAILS','title',38,75);addText('Look good. Feel confident.','body',45,155);addText('BOOK NOW','badge',45,230)}else if(t==='food'){bg='linear-gradient(135deg,#7c2d12,#ea580c)';addText('TODAY’S SPECIAL','title',38,75);addText('Fresh • Delicious • Made for you','body',45,160);addText('R 99','price',45,235)}else if(t==='event'){bg='linear-gradient(135deg,#312e81,#7c3aed)';addText('BIG EVENT','title',55,85);addText('SATURDAY • 18:00','body',58,165);addText('DON’T MISS IT!','badge',58,235)}else if(t==='service'){bg='linear-gradient(135deg,#0f172a,#0369a1)';addText('PROFESSIONAL SERVICES','title',35,70);addText('Quality • Reliable • Affordable','body',40,155);addText('CALL / WHATSAPP US','badge',40,235)}else{bg='linear-gradient(135deg,#111827,#374151)';addText('YOUR BUSINESS','title',42,75);addText('Professional solutions for your needs','body',45,160);addText('CALL / WHATSAPP NOW','badge',45,235)}document.getElementById('bg').style.background=bg;snapshot()}
+function newPoster(){clearPoster();template('business');renderPageList();if(brandKit)applyBrandKit();document.getElementById('aiBrief').value='';}
+function filterTemplates(){
+ const cat=document.getElementById('templateCategory').value;
+ document.querySelectorAll('.template').forEach(b=>b.style.display=(cat==='all'||b.dataset.cat===cat)?'block':'none');
+}
+function capturePage(){return poster.innerHTML}
+function saveCurrentPage(){pages[currentPage]=capturePage()}
+function renderPageList(){
+ const box=document.getElementById('pageList');if(!box)return;box.innerHTML='';
+ pages.forEach((p,i)=>{
+   const b=document.createElement('button');b.className='layerbtn'+(i===currentPage?' active':'');
+   b.textContent='Page '+(i+1);b.onclick=()=>switchPage(i);box.appendChild(b);
+ });
+}
+function switchPage(i){
+ saveCurrentPage();currentPage=i;
+ if(pages[i])restore(pages[i]);else{clearPoster();template('business')}
+ renderPageList();updateLayers();
+}
+function addPage(){saveCurrentPage();pages.push(null);switchPage(pages.length-1)}
+function duplicatePage(){saveCurrentPage();pages.splice(currentPage+1,0,pages[currentPage]);switchPage(currentPage+1)}
+function saveBrandKit(){
+ brandKit={
+   name:document.getElementById('brandName').value,
+   primary:document.getElementById('brandPrimary').value,
+   secondary:document.getElementById('brandSecondary').value,
+   accent:document.getElementById('brandAccent').value,
+   phone:document.getElementById('brandPhone').value,
+   email:document.getElementById('brandEmail').value
+ };
+ localStorage.setItem('posterStudioBrandKit',JSON.stringify(brandKit));
+ alert('Brand Kit saved.');
+}
+function applyBrandKit(){
+ if(!brandKit) brandKit=JSON.parse(localStorage.getItem('posterStudioBrandKit')||'null');
+ if(!brandKit){alert('Save a Brand Kit first.');return}
+ document.getElementById('brandName').value=brandKit.name||'';
+ document.getElementById('brandPrimary').value=brandKit.primary||'#111827';
+ document.getElementById('brandSecondary').value=brandKit.secondary||'#2563eb';
+ document.getElementById('brandAccent').value=brandKit.accent||'#f59e0b';
+ document.getElementById('brandPhone').value=brandKit.phone||'';
+ document.getElementById('brandEmail').value=brandKit.email||'';
+ document.getElementById('bc').value=brandKit.primary||'#111827';
+ document.getElementById('bg').style.background=brandKit.primary||'#111827';
+ const texts=[...poster.querySelectorAll('.element')].filter(e=>e.dataset.type==='text');
+ texts.forEach(e=>{if(e.classList.contains('badge')){e.style.background=brandKit.accent;e.style.color='#fff'}else e.style.color='#fff'});
+ snapshot();
+}
+function projectData(){
+ return {
+   version:4,
+   html:poster.innerHTML,
+   pages:pages,
+   currentPage:currentPage,
+   brandKit:brandKit,
+   size:document.getElementById('posterSize').value,
+   bg:document.getElementById('bc').value,
+   brand:document.getElementById('brand').value,
+   savedAt:new Date().toISOString()
+ };
+}
+function saveProject(){
+ const name=(prompt('Project name:', 'My Poster')||'My Poster').trim();
+ if(!name)return;
+ const projects=JSON.parse(localStorage.getItem('posterStudioProjects')||'{}');
+ projects[name]=projectData();
+ localStorage.setItem('posterStudioProjects',JSON.stringify(projects));
+ alert('Saved: '+name);
+}
+function loadProject(){
+ const projects=JSON.parse(localStorage.getItem('posterStudioProjects')||'{}');
+ const names=Object.keys(projects);
+ if(!names.length){alert('No saved projects yet.');return}
+ const choice=prompt('Enter project name:\\n\\n'+names.join('\\n'),names[0]);
+ if(!choice||!projects[choice])return;
+ const p=projects[choice];
+ pages=p.pages||[p.html];currentPage=p.currentPage||0;brandKit=p.brandKit||brandKit;
+ restore(pages[currentPage]||p.html);
+ document.getElementById('posterSize').value=p.size||'a4';
+ changeSize();
+ document.getElementById('bc').value=p.bg||'#111827';
+ document.getElementById('brand').value=p.brand||'YOUR BUSINESS';
+ alert('Loaded: '+choice);
+}
+function changeSize(){
+ const s=document.getElementById('posterSize').value;
+ poster.classList.remove('poster-square','poster-story','poster-landscape');
+ if(s==='square')poster.classList.add('poster-square');
+ if(s==='story')poster.classList.add('poster-story');
+ if(s==='landscape')poster.classList.add('poster-landscape');
+ snapshot();
+}
+function generatePoster(){
+ const brief=(document.getElementById('aiBrief').value||'').trim();
+ const style=document.getElementById('aiStyle').value;
+ if(!brief){alert('Please describe the poster you want first.');return}
+ clearPoster();
+ const b=brief.toLowerCase();
+ let bg='linear-gradient(135deg,#111827,#374151)';
+ if(style==='Luxury')bg='linear-gradient(135deg,#111827,#6b5b25)';
+ if(style==='Bold')bg='linear-gradient(135deg,#7f1d1d,#ef4444)';
+ if(style==='Modern')bg='linear-gradient(135deg,#0f172a,#0369a1)';
+ if(style==='Colourful')bg='linear-gradient(135deg,#7c3aed,#ec4899)';
+ if(style==='Minimal')bg='#f8fafc';
+ document.getElementById('bg').style.background=bg;
+ const dark=style==='Minimal';
+ const colour=dark?'#111827':'#fff';
+
+ let heading='YOUR BUSINESS';
+ if(b.includes('plumb'))heading='PLUMBING SERVICES';
+ else if(b.includes('beauty')||b.includes('nail'))heading='BEAUTY & NAILS';
+ else if(b.includes('restaurant')||b.includes('food')||b.includes('special'))heading='SPECIAL OFFER';
+ else if(b.includes('sale'))heading='MEGA SALE';
+ else if(b.includes('event'))heading='BIG EVENT';
+
+ let h=addText(heading,'title',38,65); h.style.color=colour;
+ let lines=[];
+ if(b.includes('geyser'))lines.push('GEYSER INSTALLATION');
+ if(b.includes('r ')) {
+   const m=brief.match(/R\s?[\d\s,.]+/i); if(m)lines.push(m[0]);
+ }
+ if(lines.length===0)lines.push('Professional • Reliable • Affordable');
+ let body=addText(lines.join('\\n'),'body',42,165);body.style.color=colour;
+ let details=brief.replace(/^(make|create|design).*?(poster|flyer)[\s:,-]*/i,'').trim();
+ details=details.replace(/R\s?[\d\s,.]+/ig,'').trim();
+ if(details.length>90)details=details.slice(0,90)+'…';
+ let d=addText(details||'Quality service you can trust','body',42,270);d.style.color=colour;
+ let c=addText('CALL / WHATSAPP NOW','badge',42,380);
+ if(dark){c.style.background='#111827';c.style.color='#fff'}
+ snapshot();
+}
+async function downloadPNG(){
+ const canvas=document.createElement('canvas');canvas.width=1190;canvas.height=1684;const ctx=canvas.getContext('2d');
+ ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+ // Render using a simplified DOM snapshot via SVG foreignObject.
+ const clone=poster.cloneNode(true);clone.querySelectorAll('.selected').forEach(e=>e.classList.remove('selected'));
+ const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="595" height="842"><foreignObject width="595" height="842"><div xmlns="http://www.w3.org/1999/xhtml">${clone.outerHTML}</div></foreignObject></svg>`;
+ const blob=new Blob([svg],{type:'image/svg+xml'});const url=URL.createObjectURL(blob);const im=new Image();
+ im.onload=()=>{ctx.drawImage(im,0,0,1190,1684);URL.revokeObjectURL(url);const a=document.createElement('a');a.download='poster.png';a.href=canvas.toDataURL('image/png');a.click()};im.src=url
+}
+document.addEventListener('keydown',e=>{
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo()}
+ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();redo()}
+ if(e.key==='Delete' && selected) deleteSelected();
+});
+document.addEventListener('click',e=>{if(e.target===poster||e.target.id==='bg'){if(selected)selected.classList.remove('selected');selected=null;document.getElementById('controls').style.display='none';document.getElementById('noSel').style.display='block'}});
+template('business');
+</script>
+</body>
+</html>
